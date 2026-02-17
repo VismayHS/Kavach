@@ -3,6 +3,7 @@ RAKSHAK Backend — Health Check Route
 """
 
 import json
+import os
 import logging
 from db import get_db
 from utils.s3_utils import check_s3_ready
@@ -20,11 +21,18 @@ def handle_health(event):
 
     # Check MongoDB
     try:
-        db = get_db()
-        db.command("ping")
-        services["mongodb"] = "connected"
+        from pymongo import MongoClient
+        uri = os.environ.get("MONGODB_URI")
+        if uri:
+            client = MongoClient(uri, serverSelectionTimeoutMS=5000)
+            client.admin.command("ping")
+            client.close()
+            services["mongodb"] = "connected"
+        else:
+            services["mongodb"] = "not_configured"
     except Exception as e:
         services["mongodb"] = "disconnected"
+        services["mongodb_error"] = str(e)
         logger.error(f"MongoDB health check failed: {e}")
 
     # Check S3
