@@ -1,0 +1,115 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: RAKSHAK Backend — AI-Powered Silent Guardian System
+
+Globals:
+  Function:
+    Timeout: 30
+    Runtime: python3.11
+    MemorySize: 256
+    Environment:
+      Variables:
+        MONGODB_URI: !Ref MongoDBUri
+        MONGODB_DB: !Ref MongoDBName
+        COGNITO_USER_POOL_ID: !Ref CognitoUserPoolId
+        COGNITO_CLIENT_ID: !Ref CognitoClientId
+        COGNITO_REGION: !Ref AWS::Region
+        SES_SENDER_EMAIL: !Ref SESSenderEmail
+        SES_REGION: !Ref AWS::Region
+        S3_EVIDENCE_BUCKET: !Ref EvidenceBucket
+        S3_REGION: !Ref AWS::Region
+
+Parameters:
+  MongoDBUri:
+    Type: String
+    NoEcho: true
+    Description: MongoDB Atlas connection string
+  MongoDBName:
+    Type: String
+    Default: rakshak
+    Description: MongoDB database name
+  CognitoUserPoolId:
+    Type: String
+    Description: Cognito User Pool ID
+  CognitoClientId:
+    Type: String
+    Description: Cognito App Client ID
+  SESSenderEmail:
+    Type: String
+    Description: Verified SES sender email address
+
+Resources:
+  # ── S3 Evidence Bucket ──
+  EvidenceBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+      LifecycleConfiguration:
+        Rules:
+          - Id: AutoDeleteAfter30Days
+            Status: Enabled
+            ExpirationInDays: 30
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+
+  # ── Lambda Function ──
+  RakshakFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: handler.lambda_handler
+      CodeUri: .
+      Policies:
+        - SESCrudPolicy:
+            IdentityName: !Ref SESSenderEmail
+        - S3CrudPolicy:
+            BucketName: !Ref EvidenceBucket
+      Events:
+        HealthCheck:
+          Type: Api
+          Properties:
+            Path: /health
+            Method: GET
+        UserProfile:
+          Type: Api
+          Properties:
+            Path: /user/profile
+            Method: ANY
+        Guardians:
+          Type: Api
+          Properties:
+            Path: /user/guardians
+            Method: ANY
+        GuardianById:
+          Type: Api
+          Properties:
+            Path: /user/guardians/{id}
+            Method: ANY
+        AlertSimulate:
+          Type: Api
+          Properties:
+            Path: /alert/simulate
+            Method: POST
+        AlertHistory:
+          Type: Api
+          Properties:
+            Path: /alert/history
+            Method: GET
+        CORSPreflight:
+          Type: Api
+          Properties:
+            Path: /{proxy+}
+            Method: OPTIONS
+
+Outputs:
+  ApiEndpoint:
+    Description: API Gateway endpoint URL
+    Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/"
+  EvidenceBucketName:
+    Description: S3 evidence bucket name
+    Value: !Ref EvidenceBucket

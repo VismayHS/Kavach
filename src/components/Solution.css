@@ -1,0 +1,139 @@
+.solution {
+    position: relative;
+    overflow: hidden;
+}
+
+.solution__header {
+    text-align: center;
+    margin-bottom: 64px;
+}
+
+/* Pipeline — 5 equal-width cards in a row */
+.solution__pipeline {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 16px;
+    margin-bottom: 56px;
+}
+
+.solution__step {
+    text-align: center;
+    padding: 28px 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.solution__step-num {
+    font-family: var(--font-heading);
+    font-size: 0.7rem;
+    font-weight: 600;
+    letter-spacing: 2px;
+    margin-bottom: 14px;
+    color: var(--text-muted);
+}
+
+.solution__step-icon {
+    width: 52px;
+    height: 52px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 12px;
+    background: rgba(79, 110, 247, 0.06);
+    border: 1px solid rgba(79, 110, 247, 0.1);
+    margin-bottom: 16px;
+    color: var(--accent-blue);
+}
+
+.solution__step-title {
+    font-family: var(--font-heading);
+    font-size: 0.92rem;
+    font-weight: 600;
+    margin-bottom: 10px;
+    color: var(--text-primary);
+    line-height: 1.35;
+}
+
+.solution__step-desc {
+    font-size: 0.82rem;
+    color: var(--text-secondary);
+    line-height: 1.65;
+}
+
+.solution__step-glow {
+    display: none;
+}
+
+/* Emphasis block */
+.solution__emphasis {
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+.solution__emphasis-inner {
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+    padding: 24px 28px;
+    border-radius: var(--radius-lg);
+    background: rgba(79, 110, 247, 0.04);
+    border: 1px solid rgba(79, 110, 247, 0.08);
+}
+
+.solution__emphasis-icon {
+    font-size: 1.4rem;
+    flex-shrink: 0;
+}
+
+.solution__emphasis-inner p {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    line-height: 1.65;
+}
+
+.solution__emphasis-inner strong {
+    color: var(--text-primary);
+}
+
+/* ── Tablet ── */
+@media (max-width: 1100px) {
+    .solution__pipeline {
+        grid-template-columns: repeat(3, 1fr);
+        gap: 14px;
+    }
+}
+
+/* ── Mobile ── */
+@media (max-width: 640px) {
+    .solution__pipeline {
+        grid-template-columns: 1fr;
+        gap: 12px;
+        max-width: 440px;
+        margin-left: auto;
+        margin-right: auto;
+    }
+
+    .solution__step {
+        flex-direction: row;
+        text-align: left;
+        gap: 18px;
+        padding: 20px;
+    }
+
+    .solution__step-icon {
+        margin-bottom: 0;
+        flex-shrink: 0;
+    }
+
+    .solution__step-num {
+        position: absolute;
+        top: 10px;
+        right: 14px;
+        margin-bottom: 0;
+    }
+
+    .solution__step-desc {
+        font-size: 0.82rem;
+    }
+}

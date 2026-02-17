@@ -1,0 +1,329 @@
+/* ============================================================
+   RAKSHAK Design System — Global Styles
+   Calm, protective, social-impact trust aesthetic
+   ============================================================ */
+
+/* ---------- CSS Reset ---------- */
+*,
+*::before,
+*::after {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+/* ---------- CSS Variables ---------- */
+:root {
+  /* Core palette — deep midnight navy, calm & protective */
+  --bg-primary: #0b1120;
+  --bg-secondary: #0f1729;
+  --bg-card: rgba(16, 24, 48, 0.55);
+  --bg-card-hover: rgba(22, 33, 62, 0.6);
+  --bg-glass: rgba(14, 20, 40, 0.5);
+
+  /* Accent colors — trust indigo + subtle warm saffron */
+  --accent-blue: #4f6ef7;
+  --accent-indigo: #5b6abf;
+  --accent-saffron: #c8915a;
+  --accent-gold: rgba(200, 145, 90, 0.15);
+  --accent-emerald: #3a9e7e;
+  --accent-rose: #c06070;
+
+  /* Gradients — understated, no neon */
+  --gradient-primary: linear-gradient(135deg, #4f6ef7, #5b6abf);
+  --gradient-hero: radial-gradient(ellipse at 50% 20%, rgba(79, 110, 247, 0.06) 0%, transparent 60%);
+  --gradient-card: linear-gradient(180deg, rgba(79, 110, 247, 0.03) 0%, transparent 100%);
+
+  /* Text */
+  --text-primary: #e2e8f0;
+  --text-secondary: #8b9ec2;
+  --text-muted: #5a6d8a;
+  --text-accent: #a3b1d6;
+
+  /* Borders */
+  --border-subtle: rgba(120, 140, 180, 0.08);
+  --border-card: rgba(120, 140, 180, 0.1);
+
+  /* Shadows — soft, no glow */
+  --shadow-card: 0 2px 16px rgba(0, 0, 0, 0.2);
+  --shadow-lift: 0 4px 20px rgba(0, 0, 0, 0.15);
+
+  /* Typography — serious, readable */
+  --font-heading: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-body: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+
+  /* Spacing */
+  --section-padding: 100px 0;
+  --container-max: 1100px;
+  --container-padding: 0 28px;
+
+  /* Transitions — calm, not flashy */
+  --transition-fast: 0.2s ease;
+  --transition-base: 0.3s ease;
+
+  /* Border radius */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+}
+
+/* ---------- Base Styles ---------- */
+html {
+  scroll-behavior: smooth;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  font-family: var(--font-body);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  line-height: 1.75;
+  overflow-x: hidden;
+  font-size: 15px;
+}
+
+::selection {
+  background: rgba(79, 110, 247, 0.25);
+  color: #fff;
+}
+
+a {
+  color: var(--accent-blue);
+  text-decoration: none;
+  transition: color var(--transition-fast);
+}
+
+a:hover {
+  color: #7b8edd;
+}
+
+img {
+  max-width: 100%;
+  display: block;
+}
+
+button {
+  font-family: var(--font-body);
+  cursor: pointer;
+  border: none;
+  outline: none;
+}
+
+/* ---------- Container ---------- */
+.container {
+  max-width: var(--container-max);
+  margin: 0 auto;
+  padding: var(--container-padding);
+}
+
+/* ---------- Section ---------- */
+.section {
+  padding: var(--section-padding);
+  position: relative;
+}
+
+.section-label {
+  font-family: var(--font-body);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 2.5px;
+  text-transform: uppercase;
+  color: var(--accent-indigo);
+  margin-bottom: 14px;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.section-label::before {
+  content: '';
+  width: 20px;
+  height: 1.5px;
+  background: var(--accent-indigo);
+  border-radius: 2px;
+  opacity: 0.6;
+}
+
+.section-title {
+  font-family: var(--font-heading);
+  font-size: clamp(1.7rem, 3.5vw, 2.5rem);
+  font-weight: 700;
+  line-height: 1.25;
+  margin-bottom: 16px;
+  color: var(--text-primary);
+  letter-spacing: -0.01em;
+}
+
+.section-subtitle {
+  font-size: 1rem;
+  color: var(--text-secondary);
+  max-width: 600px;
+  line-height: 1.75;
+}
+
+/* ---------- Section Divider ---------- */
+.section-divider {
+  width: 48px;
+  height: 1px;
+  background: var(--border-card);
+  margin: 0 auto 20px;
+}
+
+/* ---------- Buttons — solid, official, no glow ---------- */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 28px;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  transition: all var(--transition-base);
+  position: relative;
+}
+
+.btn-primary {
+  background: var(--accent-blue);
+  color: #fff;
+}
+
+.btn-primary:hover {
+  background: #4260e0;
+}
+
+.btn-secondary {
+  background: transparent;
+  color: var(--text-primary);
+  border: 1px solid var(--border-card);
+}
+
+.btn-secondary:hover {
+  border-color: var(--accent-blue);
+  color: var(--accent-blue);
+}
+
+/* ---------- Card — clean, no glass morphism glow ---------- */
+.glass-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-card);
+  border-radius: var(--radius-lg);
+  padding: 28px;
+  transition: all var(--transition-base);
+}
+
+.glass-card:hover {
+  background: var(--bg-card-hover);
+  border-color: rgba(120, 140, 180, 0.16);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lift);
+}
+
+/* ---------- Reveal Animations — gentle ---------- */
+.reveal {
+  opacity: 0;
+  transform: translateY(24px);
+  transition: opacity 0.7s ease,
+    transform 0.7s ease;
+}
+
+.reveal.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.reveal-delay-1 {
+  transition-delay: 0.08s;
+}
+
+.reveal-delay-2 {
+  transition-delay: 0.16s;
+}
+
+.reveal-delay-3 {
+  transition-delay: 0.24s;
+}
+
+.reveal-delay-4 {
+  transition-delay: 0.32s;
+}
+
+.reveal-delay-5 {
+  transition-delay: 0.40s;
+}
+
+
+
+
+/* ---------- Scrollbar ---------- */
+::-webkit-scrollbar {
+  width: 5px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-primary);
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(91, 106, 191, 0.25);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(91, 106, 191, 0.4);
+}
+
+/* ---------- Form Elements ---------- */
+.form-group {
+  margin-bottom: 16px;
+}
+
+.form-label {
+  display: block;
+  font-family: var(--font-heading);
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-bottom: 6px;
+  letter-spacing: 0.3px;
+}
+
+.form-input {
+  width: 100%;
+  padding: 11px 14px;
+  background: rgba(15, 23, 42, 0.6);
+  border: 1px solid var(--border-card);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  font-family: var(--font-body);
+  font-size: 0.88rem;
+  outline: none;
+  transition: border-color var(--transition-fast);
+}
+
+.form-input::placeholder {
+  color: var(--text-muted);
+}
+
+.form-input:focus {
+  border-color: var(--accent-blue);
+}
+
+.form-input:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ---------- Responsive ---------- */
+@media (max-width: 768px) {
+  :root {
+    --section-padding: 72px 0;
+    --container-padding: 0 20px;
+  }
+
+  .section-title {
+    font-size: clamp(1.4rem, 5vw, 2rem);
+  }
+}
