@@ -77,6 +77,7 @@ def lambda_handler(event, context):
         if not user_sub:
             return _response(401, {"message": "Invalid token."})
 
+
         # ── User Profile ──
         if path == "/user/profile":
             result = handle_profile(event, user_sub)
