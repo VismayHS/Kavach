@@ -1,25 +1,28 @@
 /**
  * LiveProtection — Browser-based real-time distress detection page.
- * Integrates voice, scream, and gesture detection with silent alert triggering.
+ * Integrates voice, scream, gesture, and behavioral detection with alert triggering.
  * All detection runs client-side. Nothing recorded unless distress confirmed.
  */
 import { useState, useRef, useCallback, useEffect } from 'react'
 import {
     ShieldCheck, ShieldOff, Mic, Camera, Eye, EyeOff,
-    CheckCircle, XCircle, Clock, AlertTriangle, Loader, MapPin, Volume2
+    CheckCircle, XCircle, Clock, AlertTriangle, Loader, MapPin, Volume2, Activity
 } from 'lucide-react'
 import { simulateAlert } from '../../services/api'
 import useVoiceDetection from '../../hooks/useVoiceDetection'
 import useScreamDetection from '../../hooks/useScreamDetection'
 import useGestureDetection from '../../hooks/useGestureDetection'
+import useBehaviorDetection from '../../hooks/useBehaviorDetection'
 import useAlertConfirmation from '../../hooks/useAlertConfirmation'
 import useGeolocation from '../../hooks/useGeolocation'
+import useLocalDetectionStore from '../../hooks/useLocalDetectionStore'
 import './LiveProtection.css'
 
 const DETECTION_TYPE_LABELS = {
     voice_distress: 'Voice Keyword',
     scream_distress: 'Scream Detected',
     gesture_distress: 'Hand Gesture',
+    behavior_distress: 'Behavioral Anomaly',
     combined_distress: 'Combined Signal',
 }
 
@@ -28,37 +31,112 @@ export default function LiveProtection() {
     const [tabVisible, setTabVisible] = useState(!document.hidden)
     const [alertsSent, setAlertsSent] = useState(0)
     const [lastAlertError, setLastAlertError] = useState(null)
+    const [retryingAlert, setRetryingAlert] = useState(false)
 
     const videoRef = useRef(null)
     const streamRef = useRef(null)
 
+    // ── Local Persistence ──
+    const store = useLocalDetectionStore()
+
+    // Restore protection state on mount
+    useEffect(() => {
+        if (store.isReady && store.protectionState !== null) {
+            setProtectionEnabled(store.protectionState)
+        }
+    }, [store.isReady, store.protectionState])
+
+    // Save protection state changes
+    useEffect(() => {
+        if (store.isReady) {
+            store.saveStateValue('protectionEnabled', protectionEnabled)
+        }
+    }, [protectionEnabled, store])
+
     // ── Geolocation ──
     const { location, locationStatus } = useGeolocation({ enabled: protectionEnabled })
 
-    // ── Alert Confirmation Engine ──
+    // ── Alert Confirmation Engine with persistence ──
     const handleAlertConfirmed = useCallback(async (type, confidence) => {
         setLastAlertError(null)
-        try {
-            await simulateAlert({
-                location,
-                detectionType: type,
-                confidence: Math.round(confidence * 100) / 100,
-            })
-            setAlertsSent((n) => n + 1)
-        } catch (err) {
-            setLastAlertError(err.response?.data?.message || 'Alert delivery failed')
+        setRetryingAlert(false)
+
+        const alertPayload = {
+            location,
+            detectionType: type,
+            confidence: Math.round(confidence * 100) / 100,
         }
-    }, [location])
+
+        // Retry logic (3 attempts with exponential backoff)
+        let attempts = 0
+        const maxAttempts = 3
+
+        while (attempts < maxAttempts) {
+            try {
+                await simulateAlert(alertPayload)
+                
+                // Success!
+                setAlertsSent((n) => n + 1)
+                
+                // Log to IndexedDB
+                if (store.isReady) {
+                    await store.addDetection({
+                        type,
+                        confidence,
+                        status: 'confirmed',
+                        timestamp: Date.now(),
+                    })
+                }
+                
+                return // Exit on success
+            } catch (err) {
+                attempts++
+                const errorMsg = err.response?.data?.message || err.message || 'Alert delivery failed'
+                
+                if (attempts >= maxAttempts) {
+                    // Final failure
+                    setLastAlertError(`${errorMsg} (${attempts} attempts)`)
+                    
+                    // Log failure
+                    if (store.isReady) {
+                        await store.addDetection({
+                            type,
+                            confidence,
+                            status: 'failed',
+                            error: errorMsg,
+                            timestamp: Date.now(),
+                        })
+                    }
+                } else {
+                    // Retry with backoff
+                    setRetryingAlert(true)
+                    await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempts) * 1000))
+                }
+            }
+        }
+    }, [location, store])
 
     const { pendingAlert, confirmationLog, reportDetection, cancelPending } =
         useAlertConfirmation({ onAlertConfirmed: handleAlertConfirmed })
+
+    // Log detections to IndexedDB
+    useEffect(() => {
+        if (store.isReady && confirmationLog.length > 0) {
+            const latest = confirmationLog[0]
+            // Avoid duplicate logging
+            if (!latest._logged) {
+                store.addDetection(latest).catch(() => { })
+                latest._logged = true
+            }
+        }
+    }, [confirmationLog, store])
 
     // ── Voice Detection ──
     const onVoiceDistress = useCallback((word, confidence) => {
         reportDetection('voice_distress', confidence)
     }, [reportDetection])
 
-    const { isModelLoaded: voiceModelLoaded, error: voiceError } =
+    const { isModelLoaded: voiceModelLoaded, detectionMethod: voiceMethod, error: voiceError } =
         useVoiceDetection({ onDistressDetected: onVoiceDistress, enabled: protectionEnabled })
 
     // ── Scream Detection ──
@@ -77,8 +155,18 @@ export default function LiveProtection() {
     const { isModelLoaded: gestureModelLoaded, handLandmarks, error: gestureError } =
         useGestureDetection({ onGestureDetected, enabled: protectionEnabled, videoRef })
 
+    // ── Behavioral Anomaly Detection ──
+    const onBehaviorAnomaly = useCallback((score) => {
+        reportDetection('behavior_distress', Math.min(1, score / 3))
+    }, [reportDetection])
+
+    const { anomalyScore } = useBehaviorDetection({
+        onAnomalyDetected: onBehaviorAnomaly,
+        enabled: protectionEnabled,
+    })
+
     // All models ready?
-    const allModelsReady = voiceModelLoaded && gestureModelLoaded
+    const allModelsReady = voiceModelLoaded && gestureModelLoaded && store.isReady
 
     // ── Camera Stream ──
     useEffect(() => {
@@ -141,6 +229,50 @@ export default function LiveProtection() {
                 : locationStatus === 'requesting' ? 'Requesting…'
                     : 'Not available'
 
+    const voiceMethodLabel = voiceMethod === 'tensorflow' ? 'TensorFlow.js'
+        : voiceMethod === 'webspeech' ? 'Web Speech API'
+            : 'Loading...'
+
+    // ── Camera Stream ──
+    useEffect(() => {
+        let active = true
+
+        async function startCamera() {
+            if (protectionEnabled && videoRef.current) {
+                try {
+                    const stream = await navigator.mediaDevices.getUserMedia({
+                        video: { width: 640, height: 480, facingMode: 'user' },
+                    })
+                    if (active && videoRef.current) {
+                        videoRef.current.srcObject = stream
+                        streamRef.current = stream
+                    }
+                } catch (_) { /* Camera error handled by gesture hook */ }
+            }
+        }
+
+        function stopCamera() {
+            if (streamRef.current) {
+                streamRef.current.getTracks().forEach((t) => t.stop())
+                streamRef.current = null
+            }
+            if (videoRef.current) {
+                videoRef.current.srcObject = null
+            }
+        }
+
+        if (protectionEnabled) {
+            startCamera()
+        } else {
+            stopCamera()
+        }
+
+        return () => {
+            active = false
+            stopCamera()
+        }
+    }, [protectionEnabled])
+
     return (
         <div className="lp">
             <h1 className="dash-page-title">Live Protection</h1>
@@ -179,14 +311,28 @@ export default function LiveProtection() {
                     <div className="lp-model-item">
                         {statusIcon(voiceModelLoaded)}
                         <span>Voice Detection</span>
+                        {voiceModelLoaded && (
+                            <span className="lp-model-detail">{voiceMethodLabel}</span>
+                        )}
                     </div>
                     <div className="lp-model-item">
                         {statusIcon(true)} {/* Scream uses Web Audio, no model load needed */}
                         <span>Scream Detection</span>
+                        <span className="lp-model-detail">Web Audio API</span>
                     </div>
                     <div className="lp-model-item">
                         {statusIcon(gestureModelLoaded)}
                         <span>Gesture Detection</span>
+                        {gestureModelLoaded && (
+                            <span className="lp-model-detail">MediaPipe Hands</span>
+                        )}
+                    </div>
+                    <div className="lp-model-item">
+                        {statusIcon(store.isReady)}
+                        <span>Behavioral AI</span>
+                        {store.isReady && (
+                            <span className="lp-model-detail">Pattern Analysis</span>
+                        )}
                     </div>
                 </div>
                 {allModelsReady ? (
@@ -252,18 +398,44 @@ export default function LiveProtection() {
                     {/* Mic Level */}
                     <div className="dash-card lp-mic-card">
                         <div className="dash-card__title">
-                            <Mic size={16} /> Microphone Level
+                            <Mic size={16} /> Audio & Behavior Monitoring
                         </div>
-                        <div className="lp-mic-bar-container">
-                            <div
-                                className="lp-mic-bar"
-                                style={{ width: `${Math.round(micLevel * 100)}%` }}
-                            />
+                        
+                        {/* Mic level bar */}
+                        <div className="lp-mic-section">
+                            <div className="lp-mic-label-top">
+                                <Volume2 size={14} />
+                                <span>Microphone</span>
+                            </div>
+                            <div className="lp-mic-bar-container">
+                                <div
+                                    className="lp-mic-bar"
+                                    style={{ width: `${Math.round(micLevel * 100)}%` }}
+                                />
+                            </div>
+                            <div className="lp-mic-value">
+                                {Math.round(micLevel * 100)}%
+                            </div>
                         </div>
-                        <div className="lp-mic-label">
-                            <Volume2 size={14} />
-                            <span>{Math.round(micLevel * 100)}%</span>
-                        </div>
+
+                        {/* Behavioral anomaly score */}
+                        {protectionEnabled && (
+                            <div className="lp-behavior-section">
+                                <div className="lp-mic-label-top">
+                                    <Activity size={14} />
+                                    <span>Behavior Pattern</span>
+                                </div>
+                                <div className="lp-mic-bar-container">
+                                    <div
+                                        className={`lp-mic-bar ${anomalyScore > 2 ? 'lp-mic-bar--alert' : ''}`}
+                                        style={{ width: `${Math.min(100, Math.round((anomalyScore / 3) * 100))}%` }}
+                                    />
+                                </div>
+                                <div className="lp-mic-value">
+                                    {anomalyScore > 0.5 ? `${anomalyScore.toFixed(1)} σ` : 'Normal'}
+                                </div>
+                            </div>
+                        )}
 
                         {/* Location status */}
                         <div className="lp-location">
@@ -298,6 +470,14 @@ export default function LiveProtection() {
                 <div className="lp-error" style={{ marginTop: 12 }}>
                     <AlertTriangle size={16} />
                     <span>{lastAlertError}</span>
+                </div>
+            )}
+
+            {/* Retry Indicator */}
+            {retryingAlert && (
+                <div className="lp-retrying" style={{ marginTop: 12 }}>
+                    <Loader size={16} className="lp-status-icon--loading" />
+                    <span>Retrying alert delivery...</span>
                 </div>
             )}
 
