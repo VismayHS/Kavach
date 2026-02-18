@@ -1,12 +1,13 @@
 import { NavLink, Outlet, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
-import { Shield, LayoutDashboard, User, Users, AlertTriangle, History, HardDrive, LogOut } from 'lucide-react'
+import { Shield, LayoutDashboard, User, Users, AlertTriangle, History, HardDrive, LogOut, ShieldCheck } from 'lucide-react'
 import { useEffect } from 'react'
 import { setAuthToken } from '../../services/api'
 import './Dashboard.css'
 
 const NAV_ITEMS = [
     { to: '/dashboard', icon: <LayoutDashboard size={18} />, label: 'Overview', end: true },
+    { to: '/dashboard/protection', icon: <ShieldCheck size={18} />, label: 'Live Protection' },
     { to: '/dashboard/profile', icon: <User size={18} />, label: 'Profile' },
     { to: '/dashboard/guardians', icon: <Users size={18} />, label: 'Guardians' },
     { to: '/dashboard/simulate', icon: <AlertTriangle size={18} />, label: 'Simulate Alert' },

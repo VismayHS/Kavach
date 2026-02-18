@@ -25,6 +25,7 @@ import Guardians from './pages/dashboard/Guardians'
 import SimulateAlert from './pages/dashboard/SimulateAlert'
 import AlertHistory from './pages/dashboard/AlertHistory'
 import Evidence from './pages/dashboard/Evidence'
+import LiveProtection from './pages/dashboard/LiveProtection'
 
 // Components
 import ProtectedRoute from './components/ProtectedRoute'
@@ -87,6 +88,7 @@ function App() {
                 }
             >
                 <Route index element={<Overview />} />
+                <Route path="protection" element={<LiveProtection />} />
                 <Route path="profile" element={<Profile />} />
                 <Route path="guardians" element={<Guardians />} />
                 <Route path="simulate" element={<SimulateAlert />} />

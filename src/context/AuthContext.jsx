@@ -41,6 +41,7 @@ export function AuthProvider({ children }) {
             return
         }
         const cognitoUser = userPool.getCurrentUser()
+
         if (cognitoUser) {
             cognitoUser.getSession((err, session) => {
                 if (err || !session?.isValid()) {
