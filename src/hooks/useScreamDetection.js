@@ -9,7 +9,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 const RMS_THRESHOLD = 0.15           // Normalized RMS energy (0–1)
 const HIGH_FREQ_RATIO_THRESHOLD = 0.4 // Ratio of energy in 1–4 kHz band
 const SUSTAIN_MS = 500               // Must sustain for this long
-const ANALYSIS_INTERVAL_MS = 100     // How often to analyse (performance knob)
+const ANALYSIS_INTERVAL_MS = 150     // How often to analyse (increased from 100ms for performance)
 
 export default function useScreamDetection({ onScreamDetected, enabled = false }) {
     const [isListening, setIsListening] = useState(false)
@@ -34,8 +34,8 @@ export default function useScreamDetection({ onScreamDetected, enabled = false }
             const audioContext = new (window.AudioContext || window.webkitAudioContext)()
             const source = audioContext.createMediaStreamSource(stream)
             const analyser = audioContext.createAnalyser()
-            analyser.fftSize = 2048
-            analyser.smoothingTimeConstant = 0.3
+            analyser.fftSize = 1024 // Reduced from 2048 for better performance
+            analyser.smoothingTimeConstant = 0.5 // Increased smoothing
             source.connect(analyser)
 
             audioContextRef.current = audioContext

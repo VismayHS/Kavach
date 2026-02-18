@@ -5,7 +5,7 @@
  */
 import { useState, useEffect, useRef, useCallback } from 'react'
 
-const TARGET_FPS = 10
+const TARGET_FPS = 5 // Reduced from 10 FPS for better performance
 const FRAME_INTERVAL = 1000 / TARGET_FPS
 const GESTURE_HOLD_MS = 2000 // Must hold gesture for 2 seconds
 

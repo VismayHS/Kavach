@@ -3,7 +3,7 @@
  * Integrates voice, scream, gesture, and behavioral detection with alert triggering.
  * All detection runs client-side. Nothing recorded unless distress confirmed.
  */
-import { useState, useRef, useCallback, useEffect } from 'react'
+import { useState, useRef, useCallback, useEffect, useMemo } from 'react'
 import {
     ShieldCheck, ShieldOff, Mic, Camera, Eye, EyeOff,
     CheckCircle, XCircle, Clock, AlertTriangle, Loader, MapPin, Volume2, Activity
@@ -218,20 +218,24 @@ export default function LiveProtection() {
     // ── Status helper ──
     const anyError = voiceError || screamError || gestureError
 
-    const statusIcon = (loaded) =>
+    const statusIcon = useMemo(() => (loaded) =>
         loaded
             ? <CheckCircle size={14} className="lp-status-icon lp-status-icon--ready" />
             : <Loader size={14} className="lp-status-icon lp-status-icon--loading" />
+    , [])
 
-    const locationLabel =
+    const locationLabel = useMemo(() =>
         locationStatus === 'granted' ? `${location.lat.toFixed(4)}, ${location.lng.toFixed(4)}`
             : locationStatus === 'denied' ? 'Location denied'
                 : locationStatus === 'requesting' ? 'Requesting…'
                     : 'Not available'
+    , [locationStatus, location])
 
-    const voiceMethodLabel = voiceMethod === 'tensorflow' ? 'TensorFlow.js'
-        : voiceMethod === 'webspeech' ? 'Web Speech API'
-            : 'Loading...'
+    const voiceMethodLabel = useMemo(() => 
+        voiceMethod === 'tensorflow' ? 'TensorFlow.js'
+            : voiceMethod === 'webspeech' ? 'Web Speech API'
+                : 'Loading...'
+    , [voiceMethod])
 
     // ── Camera Stream ──
     useEffect(() => {

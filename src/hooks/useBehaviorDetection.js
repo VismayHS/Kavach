@@ -14,10 +14,12 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 
 // Configuration
 const SAMPLE_WINDOW_SIZE = 30 // Number of samples to maintain for baseline
-const ANALYSIS_INTERVAL_MS = 2000 // Analyze every 2 seconds
+const ANALYSIS_INTERVAL_MS = 3000 // Analyze every 3 seconds (reduced from 2s)
 const ANOMALY_THRESHOLD = 2.5 // Z-score threshold (2.5 = ~99% confidence)
 const SUSTAINED_ANOMALY_DURATION_MS = 4000 // Anomaly must persist for this long
 const COOLDOWN_MS = 30000 // Cooldown between detections
+const MOUSE_THROTTLE_MS = 100 // Throttle mouse events (10 samples/sec max)
+const KEY_THROTTLE_MS = 50 // Throttle keyboard events
 
 // Feature weights (how much each contributes to anomaly score)
 const WEIGHTS = {
@@ -48,16 +50,25 @@ export default function useBehaviorDetection({ onAnomalyDetected, enabled = fals
     const lastDetectionTime = useRef(0)
     const analysisInterval = useRef(null)
 
+    // Throttling
+    const lastMouseEvent = useRef(0)
+    const lastKeyEvent = useRef(0)
+
     const enabledRef = useRef(enabled)
     enabledRef.current = enabled
 
     // ── Event Handlers ──
     const handleMouseMove = useCallback((e) => {
         const now = Date.now()
+        
+        // Throttle: only process every 100ms
+        if (now - lastMouseEvent.current < MOUSE_THROTTLE_MS) return
+        lastMouseEvent.current = now
+        
         mousePositions.current.push({ x: e.clientX, y: e.clientY, timestamp: now })
         
-        // Keep only last 50 positions
-        if (mousePositions.current.length > 50) {
+        // Keep only last 30 positions (reduced from 50)
+        if (mousePositions.current.length > 30) {
             mousePositions.current.shift()
         }
 
@@ -81,10 +92,15 @@ export default function useBehaviorDetection({ onAnomalyDetected, enabled = fals
 
     const handleKeyDown = useCallback((e) => {
         const now = Date.now()
+        
+        // Throttle: only process every 50ms
+        if (now - lastKeyEvent.current < KEY_THROTTLE_MS) return
+        lastKeyEvent.current = now
+        
         keyPresses.current.push({ key: e.key, timestamp: now })
 
-        // Keep only last 30 key presses
-        if (keyPresses.current.length > 30) {
+        // Keep only last 20 key presses (reduced from 30)
+        if (keyPresses.current.length > 20) {
             keyPresses.current.shift()
         }
 
@@ -208,7 +224,11 @@ export default function useBehaviorDetection({ onAnomalyDetected, enabled = fals
             return score + (zScores[feature] || 0) * weight
         }, 0)
 
-        setAnomalyScore(compositeScore)
+        // Only update UI if score changed significantly (reduce re-renders)
+        const roundedScore = Math.round(compositeScore * 100) / 100
+        if (Math.abs(roundedScore - anomalyScore) > 0.05) {
+            setAnomalyScore(roundedScore)
+        }
 
         // Check if anomaly threshold exceeded
         if (compositeScore >= ANOMALY_THRESHOLD) {
@@ -246,9 +266,9 @@ export default function useBehaviorDetection({ onAnomalyDetected, enabled = fals
     const startMonitoring = useCallback(() => {
         if (isMonitoring) return
 
-        window.addEventListener('mousemove', handleMouseMove)
+        window.addEventListener('mousemove', handleMouseMove, { passive: true })
         window.addEventListener('wheel', handleScroll, { passive: true })
-        window.addEventListener('keydown', handleKeyDown)
+        window.addEventListener('keydown', handleKeyDown, { passive: true })
 
         analysisInterval.current = setInterval(analyzeForAnomalies, ANALYSIS_INTERVAL_MS)
 
